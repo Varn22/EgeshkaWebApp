@@ -9,47 +9,72 @@
         .question { margin-bottom: 20px; }
         .option { padding: 10px; margin: 5px; background-color: #fff; border: 1px solid #ccc; cursor: pointer; }
         .option:hover { background-color: #e0e0e0; }
+        .correct { background-color: #d4edda; border-color: #c3e6cb; }
+        .incorrect { background-color: #f8d7da; border-color: #f5c6cb; }
     </style>
 </head>
 <body>
     <h1>ЕГЭ по русскому языку</h1>
+    <div>
+        <label for="taskType">Выберите тип задания:</label>
+        <select id="taskType">
+            <option value="1">Задание 1 (Орфография)</option>
+            <option value="2">Задание 2 (Пунктуация)</option>
+            <option value="3">Задание 3 (Лексика)</option>
+            <!-- Добавьте больше типов заданий -->
+        </select>
+        <button onclick="loadTask()">Загрузить задание</button>
+    </div>
     <div id="question"></div>
     <div id="options"></div>
+    <div id="nextButton" style="display: none;">
+        <button onclick="loadTask()">Следующее задание</button>
+    </div>
 
     <script>
         let correctAnswer;
 
-        // Загрузка задания с сервера
-        fetch('/get_task')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('question').innerText = data.question;
-                const optionsDiv = document.getElementById('options');
-                data.options.forEach((option, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'option';
-                    div.innerText = `${index + 1}) ${option}`;
-                    div.onclick = () => checkAnswer(index + 1);
-                    optionsDiv.appendChild(div);
+        function loadTask() {
+            const taskType = document.getElementById('taskType').value;
+            fetch(`/get_task?task_type=${taskType}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('question').innerText = data.question;
+                    const optionsDiv = document.getElementById('options');
+                    optionsDiv.innerHTML = ''; // Очищаем предыдущие варианты
+                    data.options.forEach((option, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'option';
+                        div.innerText = `${index + 1}) ${option}`;
+                        div.onclick = () => checkAnswer(index + 1);
+                        optionsDiv.appendChild(div);
+                    });
+                    correctAnswer = data.correct_answer;
+                    window.explanation = data.explanation;
+                    document.getElementById('nextButton').style.display = 'none'; // Скрываем кнопку до ответа
                 });
-                correctAnswer = data.correct_answer;
-                window.explanation = data.explanation;
-            });
+        }
 
         function checkAnswer(selected) {
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, index) => {
+                if (index + 1 == correctAnswer) {
+                    option.classList.add('correct');
+                } else if (index + 1 == selected) {
+                    option.classList.add('incorrect');
+                }
+            });
+
             if (selected == correctAnswer) {
                 alert("Правильно! " + window.explanation);
             } else {
                 alert("Неправильно. Правильный ответ: " + correctAnswer + ". " + window.explanation);
             }
-            // Можно добавить кнопку "Следующее задание"
+            document.getElementById('nextButton').style.display = 'block'; // Показываем кнопку после ответа
         }
 
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-        }
+        // Загрузка первого задания при загрузке страницы
+        loadTask();
     </script>
 </body>
 </html>
-
